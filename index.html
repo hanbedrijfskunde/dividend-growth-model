@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Asset Valuation Model (Growth-Based)</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
+    <style>
+        /* Custom Styles */
+        body {
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            background-color: #f4f4f4; /* Light grey background for contrast */
+        }
+        main {
+            flex: 1 0 auto;
+            padding-top: 20px;
+        }
+        nav {
+            background-color: #1a237e; /* Dark Indigo */
+        }
+        h1, h2 {
+            color: #1a237e; /* Dark Indigo */
+            font-weight: 300;
+        }
+        h1 {
+           font-size: 2.8rem;
+        }
+        h2 {
+            font-size: 2.0rem;
+        }
+        #sketch-holder {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            /* Ensure the holder has position relative if p5 uses absolute positioning internally */
+            /* position: relative; */
+            /* The canvas itself has a fixed size, defined in p5 setup */
+            max-width: 800px; /* Match canvas width or make responsive */
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #0a1432; /* Match sketch background */
+        }
+         #controls-holder {
+            max-width: 800px; /* Match sketch width */
+            margin: 20px auto 0 auto; /* Center below sketch */
+            background-color: #e8eaf6; /* Light Indigo background for controls */
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.12), 0 1px 5px 0 rgba(0,0,0,0.2);
+        }
+        /* Style sliders and labels using Materialize structure */
+        .slider-label {
+            font-size: 0.9rem;
+            color: #3f51b5; /* Indigo */
+            font-weight: 500;
+            display: block; /* Ensure it takes its own line */
+            margin-bottom: 0px; /* Adjust spacing */
+            text-align: center;
+        }
+         .slider-value {
+            font-size: 1rem;
+            color: #1a237e; /* Dark Indigo */
+            font-weight: bold;
+            display: block;
+            text-align: center;
+            margin-bottom: 15px; /* Space below value */
+        }
+         /* Target p5 created sliders - basic width/margin */
+        #controls-holder input[type=range] {
+             width: 90% !important; /* Use important if needed */
+             margin: 5px auto 10px auto; /* Center slider */
+             display: block;
+        }
+        footer.page-footer {
+            background-color: #1a237e; /* Dark Indigo */
+            padding-top: 20px;
+            margin-top: 40px;
+        }
+        .section-title {
+            border-bottom: 2px solid #3f51b5; /* Indigo border */
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-wrapper container">
+            <a href="#" class="brand-logo">Asset Valuation Model</a>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <h1>Interactive Asset Valuation Model</h1>
+            <p class="flow-text">An exploration of intrinsic value based on expected gains, growth, and risk.</p>
+
+            <div class="row">
+                <div class="col s12 m12 l6">
+                    <h2 class="section-title">Theoretical Background</h2>
+                    <p>This visualization is based on the principles of the <strong>Dividend Discount Model (DDM)</strong>, specifically the Gordon Growth Model (or Constant Growth DDM). The standard model posits that a stock's intrinsic value is the present value of all its future expected dividends, assuming dividends grow at a constant rate indefinitely.</p>
+                    <p>The core formula is: <code>Price = D₁ / (k - g)</code></p>
+                    <ul>
+                        <li><strong>D₁:</strong> Expected dividend in the next period (Year 1).</li>
+                        <li><strong>k:</strong> Required rate of return or discount rate (reflecting the risk).</li>
+                        <li><strong>g:</strong> Constant growth rate of dividends (must be less than k).</li>
+                    </ul>
+
+                    <h2 class="section-title">Model Adaptation</h2>
+                    <p>For broader applicability beyond dividend-paying stocks, or for conceptual understanding, we've adapted the terms:</p>
+                    <ul>
+                        <li><strong>Price → Value:</strong> The calculated intrinsic worth of the asset.</li>
+                        <li><strong>Dividend (D₁) → Short-term Gain (Next Period):</strong> The expected cash flow, profit, or benefit generated by the asset in the immediate future. Calculated as <em>Current Gain * (1 + Growth)</em>.</li>
+                        <li><strong>Required Rate of Return (k) → Risk:</strong> The discount rate applied to future gains, representing the uncertainty or risk associated with achieving them. Higher risk demands higher potential returns, thus lowering the present value.</li>
+                        <li><strong>Dividend Growth Rate (g) → Growth:</strong> The constant rate at which the short-term gains are expected to increase over time.</li>
+                    </ul>
+                    <p>The adapted formula displayed is: <code>Value = Gain (Next Period) / (Risk - Growth)</code></p>
+
+                     <h2 class="section-title">Key Limitation</h2>
+                    <p>A fundamental assumption for this model to yield a finite, positive value is that the <strong>Risk (k) must be greater than the Growth rate (g)</strong>. If growth is expected to exceed the discount rate indefinitely, the model mathematically implies an infinite value, which is unrealistic. The visualization enforces this constraint (Risk > Growth) for calculation.</p>
+
+                </div>
+
+                <div class="col s12 m12 l6">
+                    <h2 class="section-title">Interactive Visualization</h2>
+                     <p>Adjust the sliders below to see how changes in current gains, risk perception, and growth expectations impact the calculated intrinsic value.</p>
+
+                    <div id="sketch-holder">
+                        </div>
+
+                    <div id="controls-holder" class="z-depth-1">
+                         <div class="row" style="margin-bottom: 0;">
+                             <div class="col s12 m4">
+                                 <label for="gainSlider" class="slider-label">Current Short-term Gain (D₀)</label>
+                                 <span id="gainValue" class="slider-value">50</span> <div id="gainSliderDiv"></div> </div>
+                             <div class="col s12 m4">
+                                 <label for="riskSlider" class="slider-label">Risk (k %)</label>
+                                 <span id="riskValue" class="slider-value">10.0%</span> <div id="riskSliderDiv"></div> </div>
+                             <div class="col s12 m4">
+                                 <label for="growthSlider" class="slider-label">Growth (g %)</label>
+                                 <span id="growthValue" class="slider-value">5.0%</span> <div id="growthSliderDiv"></div> </div>
+                         </div>
+                    </div>
+
+                     <h2 class="section-title" style="margin-top: 30px;">Interpreting Changes</h2>
+                    <ul>
+                        <li><strong>Increasing Short-term Gain:</strong> Directly increases the calculated Value.</li>
+                        <li><strong>Increasing Risk (k):</strong> Increases the denominator (k-g), thus <em>decreasing</em> the calculated Value. Higher risk makes future gains less valuable today.</li>
+                        <li><strong>Increasing Growth (g):</strong> Decreases the denominator (k-g), thus <em>increasing</em> the calculated Value (as long as g remains less than k). Higher growth makes future gains more valuable.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div> </main>
+
+    <footer class="page-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col l6 s12">
+                    <h5 class="white-text">Valuation Models</h5>
+                    <p class="grey-text text-lighten-4">This page demonstrates a conceptual application of growth models in asset valuation. Always consider model limitations and real-world complexities.</p>
+                     <p class="grey-text text-lighten-4">Current Date/Time: <span id="datetime"></span></p>
+                </div>
+                <div class="col l4 offset-l2 s12">
+                    <h5 class="white-text">Links</h5>
+                    <ul>
+                        <li><a class="grey-text text-lighten-3" href="https://p5js.org/" target="_blank">p5.js</a></li>
+                        <li><a class="grey-text text-lighten-3" href="https://materializecss.com/" target="_blank">Materialize CSS</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-copyright">
+            <div class="container">
+                © 2025 Graduate Finance Education Concept
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        // Initialize Materialize components
+        M.AutoInit();
+
+         // Update date/time
+        function updateTime() {
+            const now = new Date();
+            // Use Intl.DateTimeFormat for locale-aware formatting
+             const options = {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false, // Use 24-hour format based on locale preference if needed
+                timeZoneName: 'short' // Include time zone abbreviation
+            };
+             // Adjust locale as needed, e.g., 'en-US', 'en-GB', 'nl-NL'
+            const formatter = new Intl.DateTimeFormat('en-GB', options);
+            document.getElementById('datetime').textContent = formatter.format(now);
+        }
+        updateTime(); // Initial call
+        setInterval(updateTime, 1000); // Update every second
+    </script>
+
+    <script>
+        // --- p5.js Sketch: Adapted Dividend Growth Model Infographic ---
+
+        let shortTermGainSlider, riskSlider, growthSlider;
+        let bgColor;
+        let textColor, accentColor1, accentColor2, valueColor;
+
+        let currentGain = 50; // Initial 'D0' equivalent
+        let risk = 10; // Initial 'k' equivalent (%)
+        let growth = 5; // Initial 'g' equivalent (%)
+
+        // Variables to hold span elements for displaying slider values
+        let gainValueSpan, riskValueSpan, growthValueSpan;
+
+
+        function setup() {
+            // Canvas size - adjust if needed
+            let canvasWidth = 800;
+            let canvasHeight = 400;
+            let canvas = createCanvas(canvasWidth, canvasHeight);
+            // Parent the canvas to the specific div
+            canvas.parent('sketch-holder');
+
+            // Colors
+            bgColor = color(10, 20, 50); // Dark Blue (Match holder background)
+            textColor = color(230, 240, 255); // Light grayish blue
+            accentColor1 = color(0, 150, 255); // Bright Blue
+            accentColor2 = color(255, 180, 0); // Orange/Yellow
+            valueColor = color(50, 205, 50); // Lime Green
+
+            // --- Create Sliders and Parent them ---
+            // Short-term Gain (D0 equivalent) Slider
+            shortTermGainSlider = createSlider(1, 200, currentGain, 1);
+            shortTermGainSlider.parent('gainSliderDiv');
+            shortTermGainSlider.id('gainSlider'); // Add ID for label association
+            shortTermGainSlider.style('width', '100%'); // Let CSS handle width better
+
+            // Risk (k equivalent - required return) Slider
+            riskSlider = createSlider(1, 25, risk, 0.5); // Risk percentage (0.5% steps)
+            riskSlider.parent('riskSliderDiv');
+            riskSlider.id('riskSlider');
+            riskSlider.style('width', '100%');
+
+            // Growth (g equivalent - dividend growth rate) Slider
+            growthSlider = createSlider(0, 24.5, growth, 0.5); // Growth percentage (0.5% steps)
+            growthSlider.parent('growthSliderDiv');
+            growthSlider.id('growthSlider');
+            growthSlider.style('width', '100%');
+
+            // --- Get references to HTML spans for updating values ---
+            gainValueSpan = select('#gainValue');
+            riskValueSpan = select('#riskValue');
+            growthValueSpan = select('#growthValue');
+
+            // Text settings for p5 canvas
+            textAlign(CENTER, CENTER);
+            textFont('sans-serif'); // Consider matching Materialize font if needed
+        }
+
+        function draw() {
+            background(bgColor); // Use the variable defined in setup
+
+            // --- Read Slider Values ---
+            currentGain = shortTermGainSlider.value();
+            risk = riskSlider.value();
+            growth = growthSlider.value();
+
+            // --- Update HTML Value Displays ---
+            gainValueSpan.html(nf(currentGain, 0, 0));
+            riskValueSpan.html(nf(risk, 1, 1) + "%");
+            growthValueSpan.html(nf(growth, 1, 1) + "%");
+
+            // --- Constraint: Risk > Growth ---
+            let effectiveGrowth = min(growth, risk - 0.1); // Keep at least 0.1% difference
+            let constraintWarning = false;
+            if (growth >= risk) {
+                constraintWarning = true;
+                 // Optionally visually clamp the growth slider knob if it tries to exceed risk
+                 // Check current value before setting to avoid potential infinite loops if step is large
+                 if (growthSlider.value() >= riskSlider.value()) {
+                      growthSlider.value(riskSlider.value() - 0.1); // Adjust slider position
+                      growth = growthSlider.value(); // Update the variable after clamping
+                      effectiveGrowth = growth; // Use the newly clamped value
+                       // Update the display immediately after clamping
+                      growthValueSpan.html(nf(growth, 1, 1) + "%");
+                 }
+            }
+
+
+            // --- Calculations (Adapted DGM) ---
+            let gainNextPeriod = currentGain * (1 + effectiveGrowth / 100.0);
+            let riskDecimal = risk / 100.0;
+            let growthDecimal = effectiveGrowth / 100.0;
+            let calculatedValue = 0;
+
+            if (riskDecimal > growthDecimal) {
+                calculatedValue = gainNextPeriod / (riskDecimal - growthDecimal);
+            } else {
+                calculatedValue = Infinity;
+            }
+
+             // --- Display Titles and Formula on Canvas ---
+            fill(textColor);
+            textSize(18); // Adjusted size for canvas dimensions
+            textAlign(CENTER, TOP);
+            text("Asset Value Calculation", width / 2, 20);
+
+            // Formula Display
+            let formulaY = 70; // Adjusted Y position
+            textSize(16);
+            textAlign(CENTER, CENTER);
+            fill(accentColor2);
+            text("Value =", width / 2 - 150, formulaY + 40);
+
+            textAlign(CENTER, CENTER);
+            fill(textColor);
+            textSize(14); // Smaller font for formula parts
+            text(`Gain (Next Period)`, width / 2, formulaY + 25); // Numerator
+            stroke(textColor);
+            strokeWeight(1);
+            line(width / 2 - 80, formulaY + 40, width / 2 + 80, formulaY + 40); // Fraction Line
+            noStroke();
+            text("( Risk   -   Growth )", width / 2, formulaY + 55); // Denominator
+
+            // Sub-calculation explanation
+            textSize(12);
+            fill(accentColor1);
+            text(`Gain (Next Period) = ${nf(currentGain,0,0)} * (1 + ${nf(effectiveGrowth,1,1)}%) = ${nf(gainNextPeriod, 0, 2)}`, width / 2, formulaY + 85);
+
+
+            // --- Display Calculated Value on Canvas ---
+            let resultAreaY = formulaY + 120;
+            let resultAreaHeight = height - resultAreaY - 20;
+
+            textAlign(CENTER, BOTTOM);
+            textSize(16);
+            fill(valueColor);
+            text("Calculated Value", width / 2, resultAreaY - 5);
+
+            textSize(30);
+            let valueString = "";
+             if (calculatedValue === Infinity || calculatedValue < 0 || constraintWarning) {
+                 valueString = "Invalid (Risk ≤ Growth)";
+                 fill(255, 100, 100); // Lighter Red for visibility on dark BG
+            } else {
+                valueString = "$ " + nf(calculatedValue, 0, 2);
+                fill(valueColor);
+            }
+             // Center the large text vertically somewhat
+            text(valueString, width / 2, resultAreaY + resultAreaHeight / 2 - 15);
+
+            // --- Visual Bar for Value ---
+            let barMaxHeight = resultAreaHeight * 0.4; // Smaller bar
+            let barWidth = 80;
+            let barX = width / 2 - barWidth / 2;
+            let barY = resultAreaY + resultAreaHeight / 2 + 40; // Position below text
+
+            let barHeight = 0;
+            if (calculatedValue !== Infinity && calculatedValue > 0 && !constraintWarning) {
+                // Logarithmic mapping could be better for wide ranges, but linear is simpler
+                // Let's map values from 0 to 5000 linearly
+                 barHeight = map(calculatedValue, 0, 5000, 0, barMaxHeight);
+                 barHeight = constrain(barHeight, 0, barMaxHeight);
+             }
+
+             noStroke();
+             fill(valueColor);
+             rect(barX, barY - barHeight, barWidth, barHeight); // Draw bar upwards
+
+             stroke(textColor);
+             strokeWeight(1);
+             line(barX - 10, barY, barX + barWidth + 10, barY); // Base line
+             noStroke();
+
+             // Display constraint warning on canvas if active
+              if (constraintWarning) {
+                  fill(255, 100, 100);
+                  textSize(12);
+                  textAlign(CENTER, BOTTOM);
+                  text("Risk must be > Growth", width / 2, height - 10);
+              }
+        }
+
+        // Helper function to draw an arrow (not used in this version for simplicity,
+        // as connecting external sliders to canvas formula is complex visually)
+
+    </script>
+
+</body>
+</html>
